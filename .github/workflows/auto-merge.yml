@@ -1,0 +1,25 @@
+name: Auto-merge contributions
+
+# Every pull request is merged automatically the moment it is opened.
+# pull_request_target runs the workflow from the base branch (main), so a PR
+# cannot alter this logic to do anything other than get itself merged.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Merge the pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: gh pr merge "$PR" --repo "$REPO" --merge

@@ -1,0 +1,164 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0b0f;
+  --fg: #f5f5f7;
+  --muted: #9a9aa8;
+  --accent: #e8c547;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.corpse {
+  height: 100vh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+}
+
+.hero,
+.panel,
+.outro {
+  scroll-snap-align: start;
+  min-height: 100vh;
+  position: relative;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  gap: 1rem;
+  background:
+    radial-gradient(80% 60% at 50% 0%, rgba(232, 197, 71, 0.08), transparent 70%),
+    var(--bg);
+}
+
+.hero h1 {
+  font-size: clamp(2.5rem, 9vw, 6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.tagline {
+  max-width: 40ch;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.count {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.cta {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.7rem 1.3rem;
+  border: 1px solid var(--fg);
+  border-radius: 999px;
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cta:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.scroll-hint {
+  position: absolute;
+  bottom: 2rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  animation: bob 1.6s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+.panel {
+  background: #000;
+  overflow: hidden;
+}
+
+.panel-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.panel-caption {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.panel-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.panel-author {
+  color: var(--fg);
+  text-transform: lowercase;
+}
+
+.outro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  text-align: center;
+  padding: 2rem;
+}
+
+.outro p {
+  font-size: 1.4rem;
+  color: var(--muted);
+  font-style: italic;
+  margin: 0;
+}

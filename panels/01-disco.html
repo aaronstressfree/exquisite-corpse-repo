@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem; color: #fff; text-align: center; animation: disco 7s linear infinite; }
+  @keyframes disco {
+    0%   { background: #ff006e; }
+    25%  { background: #fb5607; }
+    50%  { background: #ffbe0b; }
+    75%  { background: #8338ec; }
+    100% { background: #ff006e; }
+  }
+  h2 { font-size: clamp(1.5rem, 5vw, 3rem); margin: 0; line-height: 1.2; text-shadow: 0 2px 0 rgba(0,0,0,0.18); }
+  .ball { font-size: clamp(3rem, 12vw, 7rem); animation: bounce 1.1s cubic-bezier(.5,.05,.5,.95) infinite; }
+  @keyframes bounce { 0%, 100% { transform: translateY(-28px) rotate(-12deg); } 50% { transform: translateY(28px) rotate(12deg); } }
+  button { font-size: 1.1rem; padding: 0.7rem 1.4rem; border: 0; border-radius: 999px; cursor: pointer; font-weight: 700; background: #fff; color: #222; box-shadow: 0 6px 0 rgba(0,0,0,0.15); }
+  button:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(0,0,0,0.15); }
+  #c { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="ball">🪩</div>
+  <h2>meanwhile, a disco<br />materialized for no reason</h2>
+  <button id="boop">boops: <span id="c">0</span></button>
+  <script>
+    const c = document.getElementById('c')
+    document.getElementById('boop').addEventListener('click', () => {
+      c.textContent = (+c.textContent + 1).toString()
+    })
+  </script>
+</body>
+</html>

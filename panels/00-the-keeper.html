@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #05070d; color: #e9edf5; font-family: Georgia, "Times New Roman", serif; }
+  .scene { position: relative; height: 100vh; display: flex; align-items: flex-end; justify-content: center; }
+  .sky { position: absolute; inset: 0; background: radial-gradient(120% 80% at 50% 115%, #10203f 0%, #060810 62%); }
+  .beam {
+    position: absolute; top: 16%; left: 50%; width: 160vmax; height: 160vmax;
+    transform: translateX(-50%); transform-origin: top center;
+    background: conic-gradient(from 0deg, transparent 0 4deg, rgba(232,197,71,0.14) 4deg 13deg, transparent 13deg 360deg);
+    animation: sweep 9s linear infinite; mix-blend-mode: screen;
+  }
+  @keyframes sweep { to { transform: translateX(-50%) rotate(360deg); } }
+  .tower { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 44px; height: 32vh; background: linear-gradient(#1a2238, #090d18); border-radius: 8px 8px 0 0; box-shadow: 0 0 40px rgba(0,0,0,0.6); }
+  .lamp { position: absolute; bottom: 32vh; left: 50%; transform: translate(-50%, 50%); width: 16px; height: 16px; border-radius: 50%; background: #ffe9a8; box-shadow: 0 0 26px 10px rgba(255,233,168,0.65); animation: pulse 9s linear infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 0.55; } 8% { opacity: 1; } }
+  .line {
+    position: relative; z-index: 2; max-width: 28ch; text-align: center;
+    font-size: clamp(1.1rem, 2.6vw, 1.7rem); line-height: 1.55; margin-bottom: 14vh;
+    text-shadow: 0 2px 22px rgba(0,0,0,0.85); opacity: 0; animation: fade 3.2s ease forwards 0.6s;
+  }
+  @keyframes fade { to { opacity: 1; } }
+</style>
+</head>
+<body>
+  <div class="scene">
+    <div class="sky"></div>
+    <div class="beam"></div>
+    <div class="tower"></div>
+    <div class="lamp"></div>
+    <p class="line">The lighthouse keeper had not spoken to another living soul in eleven years, so when the knock came at the door he assumed, at first, that it was the wind.</p>
+  </div>
+</body>
+</html>

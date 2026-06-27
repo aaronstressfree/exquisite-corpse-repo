@@ -1,0 +1,323 @@
+<!doctype html>
+<!-- panel 02 - beeps. MacPaint fatbits: paint black squares with the pencil,
+     and a giant aliased 1-bit "beeps" button, descended from panel 01's boops. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; }
+  body { font-family: Chicago, Geneva, "Courier New", monospace; }
+
+  /* the fatbits painting surface fills the screen */
+  #paint {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+  }
+
+  /* the giant chunky button floats dead center, above the canvas */
+  #btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(82vw, 760px);
+    height: auto;
+    z-index: 2;
+    cursor: default;
+    image-rendering: pixelated;       /* nearest-neighbor upscale = aliased edges */
+    image-rendering: crisp-edges;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+  <canvas id="paint"></canvas>
+  <canvas id="btn" width="174" height="46"></canvas>
+
+  <script>
+    // ---- panel 01's disco palette; one click steps one notch around it ----
+    // start on classic 1-bit black, then click through panel 01's disco palette
+    const PALETTE = ['#000000', '#ff006e', '#fb5607', '#ffbe0b', '#8338ec']; // black, pink, orange, yellow, purple
+    let ci = 0;                                  // start on black
+    const hex2rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const ink = () => PALETTE[ci];
+    const rgb = () => hex2rgb(ink());
+
+    // ---- pencil cursor, drawn in the current ink color (self-contained data URI) ----
+    function pencilCursor(color) {
+      const svg =
+        "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'>" +
+        "<polygon points='1,15 2,11 5,14' fill='" + color + "'/>" +
+        "<polygon points='2,11 4.5,8.5 7.5,11.5 5,14' fill='white' stroke='" + color + "'/>" +
+        "<polygon points='4.5,8.5 11,2 14,5 7.5,11.5' fill='white' stroke='" + color + "'/>" +
+        "<polygon points='11,2 13,0 16,3 14,5' fill='" + color + "'/>" +
+        "</svg>";
+      return "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\") 1 15, crosshair";
+    }
+
+    // ---- fatbits painting surface ----
+    const paint = document.getElementById('paint');
+    const px = paint.getContext('2d');
+
+    const CELL = 16;            // size of one "fat bit"
+    let filled = new Set();     // live cells, keyed "col,row" (also the Life board)
+    let dpr = 1;
+    let gcols = 0, grows = 0;   // grid dimensions, for toroidal wrap-around
+
+    function render() {
+      const w = paint.clientWidth, h = paint.clientHeight;
+      gcols = Math.ceil(w / CELL);
+      grows = Math.ceil(h / CELL);
+      dpr = window.devicePixelRatio || 1;
+      paint.width = Math.round(w * dpr);
+      paint.height = Math.round(h * dpr);
+      px.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const [r, g, b] = rgb();
+      px.fillStyle = '#fff';
+      px.fillRect(0, 0, w, h);
+      px.fillStyle = `rgba(${r},${g},${b},0.10)`;   // faint colored "paper"
+      px.fillRect(0, 0, w, h);
+
+      // fatbits grid, tinted with the current color
+      px.strokeStyle = `rgba(${r},${g},${b},0.40)`;
+      px.lineWidth = 1;
+      px.beginPath();
+      for (let x = 0; x <= w; x += CELL) { px.moveTo(x + 0.5, 0); px.lineTo(x + 0.5, h); }
+      for (let y = 0; y <= h; y += CELL) { px.moveTo(0, y + 0.5); px.lineTo(w, y + 0.5); }
+      px.stroke();
+
+      // painted bits, in the current ink
+      px.fillStyle = ink();
+      for (const key of filled) {
+        const [c, r] = key.split(',').map(Number);
+        px.fillRect(c * CELL, r * CELL, CELL, CELL);
+      }
+    }
+
+    let painting = false;
+    function paintAt(clientX, clientY) {
+      const rect = paint.getBoundingClientRect();
+      const c = Math.floor((clientX - rect.left) / CELL);
+      const r = Math.floor((clientY - rect.top) / CELL);
+      const key = c + ',' + r;
+      if (!filled.has(key)) {
+        filled.add(key);
+        px.fillStyle = ink();
+        px.fillRect(c * CELL, r * CELL, CELL, CELL);
+      }
+    }
+
+    paint.addEventListener('pointerdown', (e) => { painting = true; paintAt(e.clientX, e.clientY); });
+    paint.addEventListener('pointermove', (e) => { if (painting) paintAt(e.clientX, e.clientY); });
+    window.addEventListener('pointerup', () => { painting = false; });
+    window.addEventListener('resize', render);
+    paint.style.cursor = pencilCursor(ink());
+    render();
+
+    // park a single up-right glider 5px above the button (still until the first beep)
+    function seed() {
+      filled = new Set();
+      const r = document.getElementById('btn').getBoundingClientRect();
+      const glW = 3 * CELL, glH = 3 * CELL;
+      const ox = Math.round((r.left + r.width / 2 - glW / 2) / CELL);
+      const oy = Math.floor((r.top - 28 - glH) / CELL);   // clear gap above the button
+      // glider oriented to travel up and to the right
+      for (const [dx, dy] of [[0, 0], [1, 0], [2, 0], [2, 1], [1, 2]]) {
+        filled.add((ox + dx) + ',' + (oy + dy));
+      }
+      render();
+    }
+    seed();
+
+    // ---- Conway's Game of Life on the fatbits matrix (edges wrap, toroidal) ----
+    let running = false;     // a still random field until the first beep starts it
+    function step() {
+      if (!filled.size) return;
+      const counts = new Map();
+      for (const key of filled) {
+        const [c, r] = key.split(',').map(Number);
+        for (let dx = -1; dx <= 1; dx++)
+          for (let dy = -1; dy <= 1; dy++) {
+            if (!dx && !dy) continue;
+            const nk = ((c + dx + gcols) % gcols) + ',' + ((r + dy + grows) % grows);
+            counts.set(nk, (counts.get(nk) || 0) + 1);
+          }
+      }
+      const next = new Set();
+      for (const [k, n] of counts) {
+        if (n === 3 || (n === 2 && filled.has(k))) next.add(k);   // birth / survival
+      }
+      filled = next;
+    }
+    setInterval(() => { if (running) { step(); render(); } }, 140);
+
+    // space pauses the simulation, so you can draw a still frame
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') { e.preventDefault(); running = !running; }
+    });
+
+    // the four glider orientations, one per diagonal heading
+    const GLIDERS = [
+      [[1, 0], [2, 1], [0, 2], [1, 2], [2, 2]],  // down-right
+      [[0, 0], [1, 0], [2, 0], [2, 1], [1, 2]],  // up-right
+      [[1, 0], [0, 1], [0, 2], [1, 2], [2, 2]],  // down-left
+      [[0, 0], [1, 0], [2, 0], [0, 1], [1, 2]],  // up-left
+    ];
+    function addGlider() {
+      const g = GLIDERS[Math.floor(Math.random() * GLIDERS.length)];
+      // the button's footprint in cells, padded - gliders born here would be hidden
+      const r = document.getElementById('btn').getBoundingClientRect();
+      const bc0 = Math.floor(r.left / CELL) - 1, bc1 = Math.ceil(r.right / CELL) + 1;
+      const br0 = Math.floor(r.top / CELL) - 1, br1 = Math.ceil(r.bottom / CELL) + 1;
+      let ox, oy, tries = 0;
+      do {
+        ox = Math.floor(Math.random() * Math.max(1, gcols - 3));
+        oy = Math.floor(Math.random() * Math.max(1, grows - 3));
+      } while (++tries < 60 &&
+               ox + 2 >= bc0 && ox <= bc1 && oy + 2 >= br0 && oy <= br1);
+      for (const [dx, dy] of g) filled.add((ox + dx) + ',' + (oy + dy));
+    }
+
+    // ---- the giant 1-bit "beeps" button ----
+    const btn = document.getElementById('btn');
+    const bx = btn.getContext('2d');
+    const W = btn.width, H = btn.height;
+    let beeps = 0;
+
+    // hand-drawn 5x7 bitmap font (only the glyphs "beeps:" + digits need exist)
+    const FONT = {
+      ' ': ['00000','00000','00000','00000','00000','00000','00000'],
+      'b': ['10000','10000','11110','10001','10001','10001','11110'],
+      'e': ['00000','00000','01110','10001','11111','10000','01110'],
+      'p': ['00000','00000','11110','10001','11110','10000','10000'],
+      's': ['00000','00000','01111','10000','01110','00001','11110'],
+      ':': ['00000','00000','00000','00100','00000','00100','00000'],
+      '0': ['01110','10001','10001','10001','10001','10001','01110'],
+      '1': ['00100','01100','00100','00100','00100','00100','01110'],
+      '2': ['01110','10001','00001','00110','01000','10000','11111'],
+      '3': ['11111','00010','00100','00010','00001','10001','01110'],
+      '4': ['00010','00110','01010','10010','11111','00010','00010'],
+      '5': ['11111','10000','11110','00001','00001','10001','01110'],
+      '6': ['00110','01000','10000','11110','10001','10001','01110'],
+      '7': ['11111','00001','00010','00100','01000','01000','01000'],
+      '8': ['01110','10001','10001','01110','10001','10001','01110'],
+      '9': ['01110','10001','10001','01111','00001','00010','01100'],
+    };
+
+    // render a string as chunky 1-bit pixels, centered on (cx, cy)
+    function drawLabel(text, cx, cy) {
+      const fp = 2, gap = 2, gw = 5, gh = 7;   // pixel size, inter-glyph gap
+      let cols = [];
+      for (const ch of text) {
+        const g = FONT[ch] || FONT[' '];
+        for (let c = 0; c < gw; c++) {
+          const col = [];
+          for (let r = 0; r < gh; r++) col.push(g[r][c] === '1');
+          cols.push(col);
+        }
+        for (let s = 0; s < gap; s++) cols.push(new Array(gh).fill(false));
+      }
+      cols = cols.slice(0, cols.length - gap);   // trim trailing gap
+
+      // draw exactly as authored - the glyphs are left/right + top/bottom symmetric
+      const ox = Math.round(cx - (cols.length * fp) / 2);
+      const oy = Math.round(cy - (gh * fp) / 2);
+      bx.fillStyle = '#000';
+      for (let i = 0; i < cols.length; i++)
+        for (let r = 0; r < gh; r++)
+          if (cols[i][r]) bx.fillRect(ox + i * fp, oy + r * fp, fp, fp);
+    }
+
+    // trace a pill / oval path (r = half-height => fully rounded ends)
+    function pill(x, y, w, h) {
+      const r = h / 2;
+      bx.beginPath();
+      bx.moveTo(x + r, y);
+      bx.arcTo(x + w, y, x + w, y + h, r);
+      bx.arcTo(x + w, y + h, x, y + h, r);
+      bx.arcTo(x, y + h, x, y, r);
+      bx.arcTo(x, y, x + w, y, r);
+      bx.closePath();
+    }
+
+    const SH = 6;            // shadow drop, straight down (matches panel 01's "0 6px")
+    let pressed = false;     // squish on click, like his button:active
+
+    function drawButton() {
+      bx.clearRect(0, 0, W, H);
+
+      const drop = pressed ? 3 : SH;      // shadow shrinks when pressed
+      const fx = 1, fw = W - 2, fh = H - SH - 2;
+      const fy = 1 + (SH - drop);         // face slides down as the shadow shrinks
+
+      // soft gray shadow, directly below - faked with a 50% dither (the MacPaint way)
+      bx.save();
+      pill(fx, fy + drop, fw, fh);
+      bx.clip();
+      bx.fillStyle = '#000';
+      for (let y = fy + drop; y < fy + drop + fh; y++) {
+        for (let x = fx; x < fx + fw; x++) {
+          if ((x + y) & 1) bx.fillRect(x, y, 1, 1);
+        }
+      }
+      bx.restore();
+
+      // white oval face with a thick black border
+      bx.fillStyle = '#fff';
+      pill(fx, fy, fw, fh);
+      bx.fill();
+      bx.strokeStyle = '#000';
+      bx.lineWidth = 2;
+      bx.stroke();
+
+      // label, in the hand-drawn bitmap font
+      drawLabel('beeps:' + beeps, W / 2, fy + fh / 2);
+
+      // threshold to 1-bit: dark pixels become the ink color, light become white
+      const [ir, ig, ib] = rgb();
+      const img = bx.getImageData(0, 0, W, H);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 128) { d[i + 3] = 0; continue; }
+        const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        if (lum < 128) { d[i] = ir; d[i + 1] = ig; d[i + 2] = ib; }
+        else { d[i] = d[i + 1] = d[i + 2] = 255; }
+        d[i + 3] = 255;
+      }
+      bx.putImageData(img, 0, 0);
+    }
+    drawButton();
+
+    // a real old-mac beep on click (square wave), climbing a semitone each beep
+    let audio;
+    function beep(n) {
+      try {
+        audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = 'square';
+        // equal-temperament: each click = +1 semitone, wrapping every 2 octaves
+        o.frequency.value = 220 * Math.pow(2, ((n - 1) % 24) / 12);
+        g.gain.value = 0.05;
+        o.connect(g).connect(audio.destination);
+        o.start();
+        o.stop(audio.currentTime + 0.07);
+      } catch (e) {}
+    }
+
+    // one click: count up, step to the next disco color, recolor the whole world
+    function recolor() { paint.style.cursor = pencilCursor(ink()); render(); drawButton(); }
+    btn.addEventListener('pointerdown', () => { pressed = true; drawButton(); });
+    btn.addEventListener('pointerup',   () => {
+      pressed = false; beeps++; running = true;   // first beep sets the field in motion
+      addGlider();                                 // every beep launches another glider
+      ci = (ci + 1) % PALETTE.length; recolor(); beep(beeps);
+    });
+    btn.addEventListener('pointerleave', () => { if (pressed) { pressed = false; drawButton(); } });
+  </script>
+</body>
+</html>
